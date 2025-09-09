@@ -1,0 +1,241 @@
+services:
+  api-gateway:
+    build: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - staff-service
+      - books-service
+      - patrons-service
+  loans-service:
+    build: loans-service
+    hostname: loans-service
+    ports:
+      - "8084:8080"                                 # Map the container port to the host port - 8084
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mongodb
+      - staff-service
+      - books-service
+      - patrons-service
+  patrons-service:
+    build: patrons-service
+    container_name: patrons-service
+    hostname: patrons-service
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      mysql1:
+        condition: service_healthy
+
+  staff-service:
+    build: staff-service
+    container_name: staff-service
+    hostname: staff-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      mysql2:
+        condition: service_healthy
+
+
+  books-service:
+    build: books-service
+    container_name: books-service
+    hostname: books-service
+    ports:
+      - "8083:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      postgres1:
+        condition: service_healthy
+
+
+  mysql1:
+    image: mysql:5.7
+    hostname: mysql1
+    container_name: mysql1-patrons
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpwd
+      - MYSQL_DATABASE=patrons-db
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pwd
+    volumes:
+      - ./data/mysql1:/var/lib/mysql1
+      - ./data/init.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-uuser",
+          "-ppwd",
+          "-h",
+          "localhost",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+
+  phpmyadmin1:
+    image: phpmyadmin:5.2.0
+    container_name: phpmyadmin1-patrons
+    hostname: mysql1
+    links:
+      - mysql1
+    restart: always
+    ports:
+      - "5016:80"
+    environment:
+      - PMA_ARBITRARY=1
+
+
+
+  mysql2:
+    image: mysql:5.7
+    hostname: mysql2
+    container_name: mysql2-staff
+    ports:
+      - "3308:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpwd
+      - MYSQL_DATABASE=staff-db
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pwd
+    volumes:
+      - ./data/mysql2:/var/lib/mysql2
+      - ./data/init.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-uuser",
+          "-ppwd",
+          "-h",
+          "localhost",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+#  phpmyadmin2:
+#    image: phpmyadmin:5.2.0
+#    container_name: phpmyadmin2-staff
+#    hostname: phpmyadmin2
+#    links:
+#      - mysql2
+#    restart: always
+#    ports:
+#      - "5014:80"
+#    environment:
+#      - PMA_ARBITRARY=1
+
+#  mysql3:
+#    image: mysql:5.7
+#    hostname: mysql3
+#    container_name: mysql3-books
+#    ports:
+#      - "3309:3306"
+#    environment:
+#      - MYSQL_ROOT_PASSWORD=rootpwd
+#      - MYSQL_DATABASE=books-db
+#      - MYSQL_USER=user
+#      - MYSQL_PASSWORD=pwd
+#    volumes:
+#      - ./data/mysql3:/var/lib/mysql3
+#      - ./data/init.d:/docker-entrypoint-initdb.d
+#    healthcheck:
+#      test:
+#        [
+#          "CMD",
+#          "mysqladmin",
+#          "ping",
+#          "-uuser",
+#          "-ppwd",
+#          "-h",
+#          "localhost",
+#        ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+
+
+  phpmyadmin3:
+    image: phpmyadmin:5.2.0
+    container_name: phpmyadmin3-books
+    hostname: phpmyadmin3
+    links:
+      - postgres1
+    restart: always
+    ports:
+      - "5015:80"
+    environment:
+      - PMA_ARBITRARY=1
+
+  postgres1:
+    image: postgres:latest
+    container_name: postgres1-books
+    hostname: postgres1
+    environment:
+      - POSTGRES_USER=user
+      - PGUSER=user
+      - POSTGRES_PASSWORD=pwd
+      - POSTGRES_DB=books-db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: "pg_isready -h postgres1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin1:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin1-books  # container name in docker event stream
+    restart: always
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@leduc.com  # needed to login to pgadmin at localhost:9000
+      - PGADMIN_DEFAULT_PASSWORD=admin         # needed to login to pgadmin at localhost:9000
+    ports:
+      - "9000:80"
+    depends_on:
+      - postgres1  # must be same name as postgresql service name
+  mongodb:
+    image: mongo
+    container_name: mongo_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo:/data
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=pwd
+
+  mongo-express:
+      image: mongo-express
+      container_name: mongo-express
+      restart: always
+      ports:
+        - "8085:8081"
+      environment:
+        - ME_CONFIG_MONGODB_ADMINUSERNAME=user
+        - ME_CONFIG_MONGODB_ADMINPASSWORD=pwd
+        - ME_CONFIG_MONGODB_SERVER=mongodb
+
+volumes:
+  mongo: { }

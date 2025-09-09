@@ -1,0 +1,282 @@
+@startuml
+hide circle
+top to bottom direction
+scale 0.2
+!define ENTITY(entityName) class entityName << Entity >>
+!define ENUM(enumName) class enumName << Enum >>
+!define AGGREGATE(aggregateName) class aggregateName << Aggregate >>
+!define AGGREGATE_ROOT(aggregateRootName) class aggregateRootName << Aggregate Root >>
+!define AGGREGATE_ROOT_ENTITY(aggregateRootEntityName) class aggregateRootEntityName << Aggregate Root >> << Entity >>
+!define VALUE_OBJECT(valueObjectName) class valueObjectName << Value Object >>
+skinparam dpi 350
+skinparam packageStyle rectangle
+skinparam rectangle {
+    BackgroundColor #f7f4eb
+    BorderColor Black
+}
+
+rectangle "Library Management System" as LibraryContext #line.dashed {
+
+    Package "Catalog Subdomain" as CatalogContext <<Rectangle>> #LightGreen {
+        ENTITY(Book) #lightpink {
+            ISBN: String
+            title: String
+            author: String
+            genre: String
+            publicationDate: Date
+            copiesAvailable: Integer
+        }
+
+        VALUE_OBJECT(BookIdentifier) #Bisque{
+            bookIdentifier: UUID
+        }
+
+        VALUE_OBJECT(Author) #Bisque {
+            authorId: UUID
+            name: String
+            biography: String
+        }
+
+        VALUE_OBJECT(Genre) #Bisque {
+            genreId: UUID
+            name: String
+        }
+
+        Book "M" --> "M" Author
+        Book "M" --> "M" Genre
+        Book --> BookIdentifier
+    }
+
+    Package "Patron Subdomain" as PatronContext <<Rectangle>> #Violet {
+
+    note "A Patron must have a unique ID, a valid email and password, a membership type, and at least one address." as PatronInvariant
+
+        AGGREGATE_ROOT(Patron) #LightBlue {
+            FirstName: String
+            LastName: String
+            email: String
+            password: String
+            memberShipType: MemberShipTypeEnum
+        }
+
+        VALUE_OBJECT(PatronIdentifier) #Bisque {
+            PatronId: UUID
+        }
+
+        VALUE_OBJECT(PatronAddress) #Bisque {
+            streetNumber: String
+            streetName: String
+            city: String
+            province: ProvinceEnum
+            postalCode: String
+        }
+
+        VALUE_OBJECT(PatronPhoneNumber) #Bisque {
+            type: PhoneTypeEnum
+            phoneNumber: String
+        }
+
+        ENUM(MemberShipType) #LightGray {
+            REGULAR
+            STUDENT
+            SENIOR_CITIZEN
+            JUNIOR
+            BASIC
+            PREMIUM
+            FAMILY
+            RESEARCHER
+            INSTITUTIONAL
+            DIGITAL
+            GUEST
+            TEMPORARY
+        }
+
+        ENUM(PhoneTypeEnum) #LightGray {
+            HOME
+            WORK
+            MOBILE
+        }
+
+        Patron "1" --> "1" PatronIdentifier
+        Patron --> MemberShipType
+        Patron "1" o-->"1" PatronAddress
+        Patron o--> PatronPhoneNumber
+        PatronPhoneNumber --> PhoneTypeEnum
+        PatronInvariant --> Patron
+    }
+
+    Package "Human Resources Subdomain" as EmployeeContext <<Rectangle>> #LightBlue {
+        ENTITY(Department) #lightpink {
+            departmentName: DepartmentNameEnum
+            headCount: Integer
+        }
+
+        VALUE_OBJECT(DepartmentIdentifier) #Bisque {
+            departmentCode: UUID
+        }
+
+        ENTITY(Employee) #lightpink {
+            sin: String
+            FirstName: String
+            LastName: String
+            email: String
+            salary: Decimal
+        }
+
+        VALUE_OBJECT(EmployeeIdentifier) #Bisque {
+            employeeId: UUID
+        }
+
+        VALUE_OBJECT(EmployeePhoneNumber) #Bisque {
+            type: PhoneTypeEnum
+            phoneNumber: String
+        }
+
+        VALUE_OBJECT(EmployeeAddress) #Bisque {
+            streetNumber: String
+            streetName: String
+            city: String
+            province: ProvinceEnum
+            postalCode: String
+        }
+
+        VALUE_OBJECT(Position) #Bisque {
+            title: PositionTitleEnum
+            positionCode: PositionCodeEnum
+        }
+
+        ENUM(PositionTitleEnum) #LightGray{
+                        LIBRARIAN
+                        ASSISTANT_LIBRARIAN
+                        ARCHIVIST
+                        CATALOGUER
+                        LIBRARY_TECHNICIAN
+                        REFERENCE_LIBRARIAN
+                        CHILDREN_LIBRARIAN
+                        DIGITAL_RESOURCES_LIBRARIAN
+                        LIBRARY_MANAGER
+                        DIRECTOR
+                    }
+
+                    ENUM(PositionCodeEnum) #LightGray{
+                        LIB
+                        ASST_LIB
+                        ARC
+                        CAT
+                        TECH
+                        REF_LIB
+                        CHI_LIB
+                        DIG_LIB
+                        MAN
+                        DIR
+                    }
+
+                    ENUM(DepartmentNameEnum) #LightGray{
+                        CATALOGING
+                        REFERENCE
+                        CHILDRENS_SERVICES
+                        DIGITAL_SERVICES
+                        ARCHIVES
+                        CIRCULATION
+                        ACQUISITIONS
+                        ADMINISTRATION
+                        SPECIAL_COLLECTIONS
+                        IT_SUPPORT
+                    }
+
+        Employee --> EmployeeIdentifier
+        Employee "1" o--> "1" EmployeeAddress
+        Employee "1" o--> "1..*" EmployeePhoneNumber
+        EmployeePhoneNumber --> PhoneTypeEnum
+        Department -L-> DepartmentIdentifier
+        Employee -R-> DepartmentIdentifier
+        Department "1" o--> "1..*" Position
+        Department --> DepartmentNameEnum
+        Employee "1" o--> "1" Position
+        Position --> PositionTitleEnum
+        Position --> PositionCodeEnum
+    }
+
+    Package "Lending Subdomain" as LendingContext <<Rectangle>> #Salmon {
+    note "Invariant:Number of copies changed depending on loans." as LoanInvariant
+        ENTITY(Loan) #lightpink {
+            PatronIdentifier: UUID
+            bookIdentifier: UUID
+            issueDate: Date
+            dueDate: Date
+            returnDate: Date
+            status: LoanStatusEnum
+        }
+
+        VALUE_OBJECT(LoanIdentifier) #Bisque {
+            loanIdentifier: UUID
+        }
+
+
+        ENUM(LoanStatusEnum) #LightGray {
+            AVAILABLE
+            CHECKED-OUT
+            UNAVAILABLE
+        }
+
+
+        Patron "1" --> "M" Loan
+        Loan "M" --> "1" Book
+        Loan --> LoanIdentifier
+        Loan --> LoanStatusEnum
+        LoanInvariant --> Loan
+        LoanInvariant --> Book
+    }
+
+    Package "Membership Management Subdomain" as MembershipContext <<Rectangle>> #LightGray {
+        ENTITY(Membership) #lightpink {
+            membershipType: MemberShipTypeEnum
+            startDate: Date
+            endDate: Date
+            status: MembershipStatusEnum
+            feeAmount: Decimal
+        }
+
+        VALUE_OBJECT(MembershipIdentifier) #Bisque {
+            membershipId: UUID
+        }
+
+        ENUM(MembershipStatusEnum) #LightGray {
+            ACTIVE
+            INACTIVE
+            EXPIRED
+            SUSPENDED
+        }
+
+        Patron "1" --> "1" Membership
+        Membership --> MembershipIdentifier
+        Membership --> MembershipStatusEnum
+        Membership --> MemberShipType
+    }
+
+    Package "Fines & Fees Subdomain" as FinesContext <<Rectangle>> #LightGray {
+        ENTITY(Fine) #lightpink {
+            amount: Decimal
+            issueDate: Date
+            dueDate: Date
+            status: FineStatusEnum
+        }
+
+        VALUE_OBJECT(FineIdentifier) #Bisque {
+            fineId: UUID
+        }
+
+        ENUM(FineStatusEnum) #LightGray {
+            UNPAID
+            PAID
+            WAIVED
+        }
+
+        Patron "1" --> "M" Fine
+        Fine --> FineIdentifier
+        Fine --> FineStatusEnum
+    }
+
+
+}
+@enduml

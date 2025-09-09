@@ -1,0 +1,45 @@
+# Default Spring Profile
+server:
+  error:
+    include-message: always
+logging:
+  level:
+    root: INFO
+    com.cardealership: DEBUG
+app:
+  patrons-service:
+    host: localhost
+    port: 7001
+  staff-service:
+    host: localhost
+    port: 7002
+  books-service:
+    host: localhost
+    port: 7003
+  loans-service:
+    host: localhost
+    port: 7004
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+server.port: 8080
+
+app:
+  patrons-service:
+    #must match Docker host name
+    host: patrons-service
+    port: 8080
+  staff-service:
+    host: staff-service
+    port: 8080
+  books-service:
+    host: books-service
+    port: 8080
+  loans-service:
+    host: loans-service
+    port: 8080

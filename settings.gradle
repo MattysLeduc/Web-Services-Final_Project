@@ -1,0 +1,6 @@
+
+include 'staff-service'
+include 'api-gateway'
+include 'books-service'
+include 'loans-service'
+include 'patrons-service'

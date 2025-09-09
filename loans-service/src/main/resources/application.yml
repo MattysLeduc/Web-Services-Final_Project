@@ -1,0 +1,81 @@
+# Default Spring Profile
+server:
+  error:
+    include-message: always
+
+logging:
+  level:
+    root: INFO
+    com.leduc: DEBUG
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+    org.mongodb.driver: DEBUG
+    org.springframework.data.mongodb.embedded: DEBUG
+
+---
+
+#for test
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  data:
+    mongodb:
+      username: user
+      password: pwd
+      host: localhost
+      port: 0
+      database: loans-db
+      authentication-database: admin
+      auto-index-creation: true
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 5.0.5
+
+app:
+  books-service:
+    host: localhost
+    port: 7001
+  patrons-service:
+    host: localhost
+    port: 7002
+  staff-service:
+    host: localhost
+    port: 7003
+
+
+---
+
+# for docker
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+
+  data:
+    mongodb:
+      username: user
+      password: pwd
+      host: mongodb
+      port: 27017
+      database: sales-db
+      authentication-database: admin
+      auto-index-creation: true
+
+server.port: 8080
+
+app:
+  books-service:
+    host: books-service
+    port: 8080
+  patrons-service:
+    host: patrons-service
+    port: 8080
+  staff-service:
+    host: staff-service
+    port: 8080
